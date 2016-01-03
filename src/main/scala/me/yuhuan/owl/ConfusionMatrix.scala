@@ -1,13 +1,50 @@
 package me.yuhuan.owl
-import scala.collection.mutable
+import scala.collection._
 
 /**
   * @author Yuhuan Jiang (jyuhuan@gmail.com).
   */
-class ConfusionMatrix[V](counts: Map[(V, V), Int], val labels: Set[V]) { outer =>
+class ConfusionMatrix[V](val counts: Map[(V, V), Int], val labels: Set[V]) { self =>
   def apply(goldAuto: (V, V)): Int = if (counts.contains(goldAuto)) counts(goldAuto) else 0
   def apply(gold: V, auto: V): Int = if (counts.contains(gold -> auto)) counts(gold -> auto) else 0
 
+  /**
+    * Combines two confusion matrices by adding corresponding results.
+    */
+  def +(that: ConfusionMatrix[V]): ConfusionMatrix[V] = {
+    require(
+      self.labels == that.labels,
+      "The two confusion matrices must be using the same set of labels."
+    )
+    val newCount = new DefaultMap[(V, V), Int] {
+      def get(k: (V, V)): Option[Int] = {
+        if (self.labels.contains(k._1) && self.labels.contains(k._2)) {
+          Some(self(k) + that(k))
+        }
+        else None
+      }
+      def iterator: scala.Iterator[((V, V), Int)] = new scala.Iterator[((V, V), Int)] {
+        val ls = self.labels.toIndexedSeq
+        var i = 0
+        var j = 0
+        def inc() = {
+          j += 1
+          if (j == ls.length) {
+            j = 0
+            i += 1
+          }
+        }
+        def hasNext: Boolean = i < ls.length && j < ls.length
+        def next(): ((V, V), Int) = {
+          val k = ls(i) -> ls(j)
+          println(i + "," + j)
+          inc()
+          (k, get(k).get)
+        }
+      }
+    }
+    new ConfusionMatrix[V](newCount, labels)
+  }
 
   /**
     * Suppose T1 is chosen as the value of interest (i.e., the value that will be considered TRUE)
@@ -27,11 +64,11 @@ class ConfusionMatrix[V](counts: Map[(V, V), Int], val labels: Set[V]) { outer =
     *
     */
   def binarized(valueOfInterest: V): BinaryConfusionMatrix = {
-    val valuesDespised = outer.labels.filter(_ != valueOfInterest).toSeq
-    val tp = outer(valueOfInterest -> valueOfInterest)
-    val tn = (for (v1 <- valuesDespised; v2 <- valuesDespised) yield v1 -> v2).map(outer.apply).sum
-    val fp = valuesDespised.map(v => outer(v -> valueOfInterest)).sum
-    val fn = valuesDespised.map(v => outer(valueOfInterest -> v)).sum
+    val valuesDespised = self.labels.filter(_ != valueOfInterest).toSeq
+    val tp = self(valueOfInterest -> valueOfInterest)
+    val tn = (for (v1 <- valuesDespised; v2 <- valuesDespised) yield v1 -> v2).map(self.apply).sum
+    val fp = valuesDespised.map(v => self(v -> valueOfInterest)).sum
+    val fn = valuesDespised.map(v => self(valueOfInterest -> v)).sum
     new BinaryConfusionMatrix(tp, tn, fp, fn)
   }
 }
@@ -62,14 +99,19 @@ object ConfusionMatrix {
 
 object ConfusionMatrixTest extends App {
 
-  val cm = ConfusionMatrix.of(
-    //                 TP           FN           FP           FN
+  val cm1 = ConfusionMatrix.of(
     auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
     gold = Map("k1" -> "+", "k2" -> "+", "k3" -> "–", "k4" -> "+"),
     labels = Set("+", "–", "0")
   )
 
-  val bcm = cm.binarized("+")
+  val cm2 = ConfusionMatrix.of(
+    auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
+    gold = Map("k1" -> "–", "k2" -> "–", "k3" -> "0", "k4" -> "+"),
+    labels = Set("+", "–", "0")
+  )
+
+  val cm = cm1 + cm2
 
   val bp = 0
 }
