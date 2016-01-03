@@ -16,33 +16,43 @@ class ConfusionMatrix[V](val counts: Map[(V, V), Int], val labels: Set[V]) { sel
       self.labels == that.labels,
       "The two confusion matrices must be using the same set of labels."
     )
-    val newCount = new DefaultMap[(V, V), Int] {
-      def get(k: (V, V)): Option[Int] = {
-        if (self.labels.contains(k._1) && self.labels.contains(k._2)) {
-          Some(self(k) + that(k))
-        }
-        else None
-      }
-      def iterator: scala.Iterator[((V, V), Int)] = new scala.Iterator[((V, V), Int)] {
-        val ls = self.labels.toIndexedSeq
-        var i = 0
-        var j = 0
-        def inc() = {
-          j += 1
-          if (j == ls.length) {
-            j = 0
-            i += 1
-          }
-        }
-        def hasNext: Boolean = i < ls.length && j < ls.length
-        def next(): ((V, V), Int) = {
-          val k = ls(i) -> ls(j)
-          println(i + "," + j)
-          inc()
-          (k, get(k).get)
-        }
-      }
+
+    val newCount = mutable.HashMap[(V, V), Int]()
+    for (v1 <- labels; v2 <- labels) {
+      val k = v1 -> v2
+      newCount(k) = self(k) + that(k)
     }
+
+
+    // TODO: this lazy version is slow
+
+//    val newCount = new DefaultMap[(V, V), Int] {
+//      def get(k: (V, V)): Option[Int] = {
+//        if (self.labels.contains(k._1) && self.labels.contains(k._2)) {
+//          Some(self(k) + that(k))
+//        }
+//        else None
+//      }
+//      def iterator: scala.Iterator[((V, V), Int)] = new scala.Iterator[((V, V), Int)] {
+//        val ls = self.labels.toIndexedSeq
+//        var i = 0
+//        var j = 0
+//        def inc() = {
+//          j += 1
+//          if (j == ls.length) {
+//            j = 0
+//            i += 1
+//          }
+//        }
+//        def hasNext: Boolean = i < ls.length && j < ls.length
+//        def next(): ((V, V), Int) = {
+//          val k = ls(i) -> ls(j)
+//          println(i + "," + j)
+//          inc()
+//          (k, get(k).get)
+//        }
+//      }
+//    }
     new ConfusionMatrix[V](newCount, labels)
   }
 
@@ -111,7 +121,8 @@ object ConfusionMatrixTest extends App {
     labels = Set("+", "–", "0")
   )
 
-  val cm = cm1 + cm2
+  val cms = Array.fill[ConfusionMatrix[String]](100)(cm1)
+  val sum = cms.reduce(_ + _)
 
   val bp = 0
 }
