@@ -39,8 +39,13 @@ class ConfusionMatrix[V](counts: Map[(V, V), Int], val labels: Set[V]) { outer =
 object ConfusionMatrix {
   def of[K, V](gold: Map[K, V], auto: Map[K, V], labels: Set[V]): ConfusionMatrix[V] = {
     require(
-      (gold.values ++ auto.values).toSet.size == labels.size,
-      "The gold and auto labels must use the labels from the provided label set!"
+      (gold.values ++ auto.values).forall(labels.contains),
+      s"The gold and auto labels must use the labels from the provided label set {${labels.mkString(",")}}!"
+    )
+
+    require( // TODO: Change to automatically counting them as FNs or FPs
+      gold.keys.size == auto.keys.size,
+      "The number of auto predictions should match that of the gold! "
     )
 
     val commonKeys = gold.keySet intersect auto.keySet
