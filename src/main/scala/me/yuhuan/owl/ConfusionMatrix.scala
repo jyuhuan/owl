@@ -8,6 +8,11 @@ class ConfusionMatrix[V](val counts: Map[(V, V), Int], val labels: Set[V]) { sel
   def apply(goldAuto: (V, V)): Int = if (counts.contains(goldAuto)) counts(goldAuto) else 0
   def apply(gold: V, auto: V): Int = if (counts.contains(gold -> auto)) counts(gold -> auto) else 0
 
+  def filter(p: V => Boolean): ConfusionMatrix[V] = {
+    val newCounts = counts.filter { case ((v1, v2), i) => p(v1) && p(v2) }
+    new ConfusionMatrix(newCounts, labels.filter(p))
+  }
+
   /**
     * Combines two confusion matrices by adding corresponding results.
     */
@@ -110,19 +115,23 @@ object ConfusionMatrix {
 object ConfusionMatrixTest extends App {
 
   val cm1 = ConfusionMatrix.of(
-    auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
-    gold = Map("k1" -> "+", "k2" -> "+", "k3" -> "–", "k4" -> "+"),
-    labels = Set("+", "–", "0")
+  auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
+  gold = Map("k1" -> "+", "k2" -> "+", "k3" -> "–", "k4" -> "+"),
+  labels = Set("+", "–", "0")
   )
 
   val cm2 = ConfusionMatrix.of(
-    auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
-    gold = Map("k1" -> "–", "k2" -> "–", "k3" -> "0", "k4" -> "+"),
-    labels = Set("+", "–", "0")
+  auto = Map("k1" -> "+", "k2" -> "–", "k3" -> "+", "k4" -> "0"),
+  gold = Map("k1" -> "–", "k2" -> "–", "k3" -> "0", "k4" -> "+"),
+  labels = Set("+", "–", "0")
   )
+
+  val cm3 = cm1.filter(x => Set("–", "+") contains x)
 
   val cms = Array.fill[ConfusionMatrix[String]](100)(cm1)
   val sum = cms.reduce(_ + _)
+
+
 
   val bp = 0
 }
