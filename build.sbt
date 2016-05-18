@@ -1,6 +1,6 @@
 name := "owl"
 
-version := "0.0.5-SNAPSHOT"
+version := "0.0.6-SNAPSHOT"
 
 organization := "me.yuhuan"
 
@@ -25,7 +25,6 @@ publishArtifact in Test := false
 //region Custom Dependencies
 //endregion
 //endregion
-
 
 pomExtra :=
   <url>https://github.com/jyuhuan/owl</url>
